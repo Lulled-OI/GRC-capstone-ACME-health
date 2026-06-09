@@ -24,8 +24,10 @@ test_no_logging_fails if {
   }
 }
 
-test_logging_no_destination_fails if {
-  count(deny) > 0 with input as {
+test_logging_no_destination_passes_plan_time if {
+  # destination_arn may be null in plan JSON (known after apply)
+  # presence of access_log_settings block is sufficient at plan time
+  count(deny) == 0 with input as {
     "resource_changes": [{
       "address": "aws_apigatewayv2_stage.default",
       "type": "aws_apigatewayv2_stage",

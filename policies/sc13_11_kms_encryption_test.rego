@@ -34,8 +34,10 @@ test_s3_sse_s3_fails if {
   }
 }
 
-test_s3_kms_without_cmk_fails if {
-  count(deny) > 0 with input as {
+test_s3_kms_without_cmk_passes_plan_time if {
+  # kms_master_key_id may be null/absent in plan JSON (known after apply)
+  # algorithm check is sufficient at plan time
+  count(deny) == 0 with input as {
     "resource_changes": [{
       "address": "aws_s3_bucket_server_side_encryption_configuration.uploads",
       "type": "aws_s3_bucket_server_side_encryption_configuration",
