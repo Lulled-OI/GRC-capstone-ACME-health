@@ -100,7 +100,7 @@ jobs:
       - name: Upload evidence bundle to vault
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: |
-          VAULT=$(aws s3 ls | grep "acme-health-intake-evidence" | awk '{print $3}')
+          VAULT=$(cd terraform && terraform output -raw evidence_bucket)
           aws s3 cp "${BUNDLE}" "s3://${VAULT}/pipeline/${BUNDLE}"
           aws s3 cp "${BUNDLE}.bundle" "s3://${VAULT}/pipeline/${BUNDLE}.bundle"
           echo "Evidence uploaded to s3://${VAULT}/pipeline/${BUNDLE}"
