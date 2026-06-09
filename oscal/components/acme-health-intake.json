@@ -1,0 +1,279 @@
+{
+  "component-definition": {
+    "uuid": "a7f3c1e2-8b4d-4f9a-b2e6-1c5d7e9f0a3b",
+    "metadata": {
+      "title": "Acme Health Patient Intake API — GRC Component Definition",
+      "last-modified": "2026-06-09T00:00:00Z",
+      "version": "1.0.0",
+      "oscal-version": "1.1.2",
+      "remarks": "CMMC Level 2 component definition for the Acme Health Patient Intake API. Primary framework: CMMC L2 / NIST SP 800-171 Rev. 3. This component describes the GRC controls wrapped around the cgep-app-starter workload."
+    },
+    "components": [
+      {
+        "uuid": "b8e4d2f1-9c5a-4e7b-a3f6-2d8c0e1f4b7a",
+        "type": "service",
+        "title": "Acme Health Patient Intake API",
+        "description": "Serverless patient intake API deployed on AWS Lambda, API Gateway, S3, and DynamoDB. Accepts and stores patient intake submissions. Handles PHI and is subject to CMMC Level 2 controls for the federal pilot program.",
+        "props": [
+          {
+            "name": "deployment-environment",
+            "value": "aws"
+          },
+          {
+            "name": "terraform-module",
+            "value": "terraform/main.tf"
+          },
+          {
+            "name": "lambda-function",
+            "value": "aws_lambda_function.intake"
+          },
+          {
+            "name": "api-gateway",
+            "value": "aws_apigatewayv2_api.intake"
+          },
+          {
+            "name": "s3-uploads-bucket",
+            "value": "aws_s3_bucket.uploads"
+          },
+          {
+            "name": "dynamodb-table",
+            "value": "aws_dynamodb_table.intake"
+          },
+          {
+            "name": "vpc",
+            "value": "aws_vpc.main"
+          },
+          {
+            "name": "kms-phi-key",
+            "value": "aws_kms_key.phi"
+          },
+          {
+            "name": "kms-evidence-key",
+            "value": "aws_kms_key.evidence"
+          },
+          {
+            "name": "evidence-vault",
+            "value": "aws_s3_bucket.evidence"
+          },
+          {
+            "name": "cloudtrail",
+            "value": "aws_cloudtrail.main"
+          }
+        ],
+        "control-implementations": [
+          {
+            "uuid": "c9f5e3a2-0d6b-4f8c-b4a7-3e9d1f2e5c8b",
+            "source": "https://raw.githubusercontent.com/usnistgov/oscal-content/main/nist.gov/SP800-171/rev3/json/NIST_SP-800-171_rev3_catalog.json",
+            "description": "CMMC Level 2 controls implemented for the Acme Health Patient Intake API. Framework: NIST SP 800-171 Rev. 3.",
+            "implemented-requirements": [
+              {
+                "uuid": "d0a6f4b3-1e7c-4a9d-c5b8-4f0e2a3f6d9c",
+                "control-id": "03.13.11",
+                "description": "FIPS-validated cryptography is used to protect the confidentiality of PHI at rest. The S3 uploads bucket and DynamoDB submissions table are encrypted using AWS KMS customer-managed keys (CMKs) with annual key rotation enabled. The encryption is enforced via aws_s3_bucket_server_side_encryption_configuration and the server_side_encryption block on aws_dynamodb_table.intake.",
+                "props": [
+                  {
+                    "name": "gap-closed",
+                    "value": "GAP-01, GAP-02"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "value": "aws_kms_key.phi"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "value": "aws_s3_bucket_server_side_encryption_configuration.uploads"
+                  },
+                  {
+                    "name": "rego-policy",
+                    "value": "policies/sc13_11_kms_encryption.rego"
+                  },
+                  {
+                    "name": "secondary-framework-reference",
+                    "value": "HIPAA 164.312(a)(2)(iv)"
+                  }
+                ],
+                "statements": [
+                  {
+                    "statement-id": "03.13.11_stmt",
+                    "uuid": "e1b7a5c4-2f8d-4b0e-d6c9-5a1f3b4a7e0d",
+                    "description": "AWS KMS CMK aws_kms_key.phi encrypts aws_s3_bucket.uploads and aws_dynamodb_table.intake. Key rotation is enabled. The OPA policy sc13_11_kms_encryption.rego enforces this at plan time and fails the pipeline if SSE-KMS is not configured."
+                  }
+                ]
+              },
+              {
+                "uuid": "f2c8b6d5-3a9e-4c1f-e7d0-6b2a4c5b8f1e",
+                "control-id": "03.13.08",
+                "description": "PHI in transit is protected by enforcing TLS-only access on all S3 buckets. Bucket policies include an explicit Deny statement for requests where aws:SecureTransport is false, ensuring no unencrypted data transfer is permitted.",
+                "props": [
+                  {
+                    "name": "gap-closed",
+                    "value": "GAP-03"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "value": "aws_s3_bucket_policy.uploads_tls_only"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "value": "aws_s3_bucket_policy.evidence_tls_only"
+                  },
+                  {
+                    "name": "rego-policy",
+                    "value": "policies/sc13_8_tls_enforcement.rego"
+                  },
+                  {
+                    "name": "secondary-framework-reference",
+                    "value": "HIPAA 164.312(e)(1)"
+                  }
+                ],
+                "statements": [
+                  {
+                    "statement-id": "03.13.08_stmt",
+                    "uuid": "a3d9c7e6-4b0f-4d2a-f8e1-7c3b5d6c9a2f",
+                    "description": "aws_s3_bucket_policy.uploads_tls_only and aws_s3_bucket_policy.evidence_tls_only enforce TLS-only access. The OPA policy sc13_8_tls_enforcement.rego detects bucket policies missing the SecureTransport deny and blocks the pipeline."
+                  }
+                ]
+              },
+              {
+                "uuid": "b4e0d8f7-5c1a-4e3b-a9f2-8d4c6e7d0b3a",
+                "control-id": "03.01.05",
+                "description": "The Lambda execution role is scoped to the minimum permissions required for the intake workflow. Wildcard actions (dynamodb:* and s3:*) have been replaced with explicit actions: dynamodb:PutItem, dynamodb:GetItem, dynamodb:UpdateItem, dynamodb:Query, s3:PutObject, and s3:GetObject.",
+                "props": [
+                  {
+                    "name": "gap-closed",
+                    "value": "GAP-07"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "value": "aws_iam_role_policy.lambda_least_privilege"
+                  },
+                  {
+                    "name": "rego-policy",
+                    "value": "policies/ac1_5_least_privilege.rego"
+                  },
+                  {
+                    "name": "secondary-framework-reference",
+                    "value": "HIPAA 164.312(a)(1)"
+                  }
+                ],
+                "statements": [
+                  {
+                    "statement-id": "03.01.05_stmt",
+                    "uuid": "c5f1e9a8-6d2b-4f4c-b0a3-9e5d7f8e1c4b",
+                    "description": "aws_iam_role_policy.lambda_least_privilege replaces the original wildcard policy. The OPA policy ac1_5_least_privilege.rego blocks any IAM policy containing dynamodb:*, s3:*, or * actions."
+                  }
+                ]
+              },
+              {
+                "uuid": "d6a2f0b9-7e3c-4a5d-c1b4-0f6e8a9f2d5c",
+                "control-id": "03.13.01",
+                "description": "The Lambda function is deployed inside the VPC provisioned by the starter, using private subnets and a hardened security group that permits only HTTPS egress to AWS services. VPC Gateway endpoints for S3 and DynamoDB ensure traffic stays on the AWS private network and does not traverse the public internet.",
+                "props": [
+                  {
+                    "name": "gap-closed",
+                    "value": "GAP-05"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "value": "aws_security_group.lambda"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "value": "aws_vpc_endpoint.dynamodb"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "value": "aws_vpc_endpoint.s3"
+                  },
+                  {
+                    "name": "rego-policy",
+                    "value": "policies/sc13_1_vpc_boundary.rego"
+                  },
+                  {
+                    "name": "secondary-framework-reference",
+                    "value": "HIPAA 164.312(e)(1)"
+                  }
+                ],
+                "statements": [
+                  {
+                    "statement-id": "03.13.01_stmt",
+                    "uuid": "e7b3a1c0-8f4d-4b6e-d2c5-1a7f9b0a3e6d",
+                    "description": "aws_lambda_function.intake.vpc_config places the function in aws_subnet.private[*] behind aws_security_group.lambda. The OPA policy sc13_1_vpc_boundary.rego fails the pipeline if a Lambda function lacks a vpc_config block."
+                  }
+                ]
+              },
+              {
+                "uuid": "f8c4b2d1-9a5e-4c7f-e3d6-2b8a0c1b4f7e",
+                "control-id": "03.03.01",
+                "description": "Audit records are generated for API activity via API Gateway access logging to CloudWatch, and for all management-plane events via CloudTrail (multi-region, log-file-validation enabled). The CloudWatch log group retains records for 90 days. CloudTrail logs are stored in a dedicated S3 bucket encrypted with the evidence KMS key.",
+                "props": [
+                  {
+                    "name": "gap-closed",
+                    "value": "GAP-08"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "value": "aws_cloudwatch_log_group.apigw"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "value": "aws_cloudtrail.main"
+                  },
+                  {
+                    "name": "rego-policy",
+                    "value": "policies/au3_1_audit_logging.rego"
+                  },
+                  {
+                    "name": "secondary-framework-reference",
+                    "value": "HIPAA 164.312(b)"
+                  }
+                ],
+                "statements": [
+                  {
+                    "statement-id": "03.03.01_stmt",
+                    "uuid": "a9d5c3e2-0b6f-4d8a-f4e7-3c9b1d2c5a8f",
+                    "description": "aws_apigatewayv2_stage.default.access_log_settings routes API access logs to aws_cloudwatch_log_group.apigw. aws_cloudtrail.main captures management events. The OPA policy au3_1_audit_logging.rego blocks pipeline runs where the API Gateway stage lacks access_log_settings."
+                  }
+                ]
+              },
+              {
+                "uuid": "b0e6d4f3-1c7a-4e9b-a5f8-4d0c2e3d6b9f",
+                "control-id": "03.08.09",
+                "description": "Versioning is enabled on the S3 uploads bucket to ensure that PHI overwrites and deletions are recoverable. The evidence vault also has versioning enabled and is protected by COMPLIANCE-mode Object Lock, ensuring audit artifacts are immutable.",
+                "props": [
+                  {
+                    "name": "gap-closed",
+                    "value": "GAP-04"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "value": "aws_s3_bucket_versioning.uploads"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "value": "aws_s3_bucket_versioning.evidence"
+                  },
+                  {
+                    "name": "terraform-resource",
+                    "value": "aws_s3_bucket_object_lock_configuration.evidence"
+                  },
+                  {
+                    "name": "secondary-framework-reference",
+                    "value": "HIPAA 164.308(a)(7)"
+                  }
+                ],
+                "statements": [
+                  {
+                    "statement-id": "03.08.09_stmt",
+                    "uuid": "c1f7e5a4-2d8b-4f0c-b6a9-5e1d3f4e7c0a",
+                    "description": "aws_s3_bucket_versioning.uploads enables versioning on the PHI uploads bucket. aws_s3_bucket_object_lock_configuration.evidence enforces COMPLIANCE-mode retention on the evidence vault, preventing deletion or modification of audit artifacts."
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
