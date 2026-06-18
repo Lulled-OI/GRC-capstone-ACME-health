@@ -20,8 +20,8 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "uploads" {
 # GAP-02: CMK encryption on DynamoDB — patched directly in main.tf.
 # CMMC SC.L2-3.13.11
 
-# GAP-03: deny non-TLS requests on the uploads bucket.
-# CMMC SC.L2-3.13.8
+# GAP-03: TLS enforcement INTENTIONALLY REMOVED to demonstrate policy gate.
+# This simulates a developer re-introducing the gap.
 resource "aws_s3_bucket_policy" "uploads_tls_only" {
   bucket = aws_s3_bucket.uploads.id
 
@@ -29,19 +29,11 @@ resource "aws_s3_bucket_policy" "uploads_tls_only" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid       = "DenyNonTLS"
-        Effect    = "Deny"
+        Sid       = "AllowAll"
+        Effect    = "Allow"
         Principal = "*"
-        Action    = "s3:*"
-        Resource = [
-          aws_s3_bucket.uploads.arn,
-          "${aws_s3_bucket.uploads.arn}/*"
-        ]
-        Condition = {
-          Bool = {
-            "aws:SecureTransport" = "false"
-          }
-        }
+        Action    = "s3:GetObject"
+        Resource  = "${aws_s3_bucket.uploads.arn}/*"
       }
     ]
   })
